@@ -1,12 +1,29 @@
 import os
 
-import psycopg
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+engine = create_engine(
+    DATABASE_URL.replace(
+        "postgresql://",
+        "postgresql+psycopg://",
+    )
+)
 
-def get_connection():
-    return psycopg.connect(DATABASE_URL)
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False,
+)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

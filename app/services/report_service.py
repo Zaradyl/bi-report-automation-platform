@@ -1,10 +1,24 @@
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.models import Report, ReportRun, ReportResult
+
+
+def make_json_safe(value):
+    """
+    Convert database values into JSON-compatible Python values.
+    """
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+
+    if isinstance(value, Decimal):
+        return float(value)
+
+    return value
 
 
 def run_report_background(
@@ -30,7 +44,11 @@ def run_report_background(
         result = db.execute(text(report.query))
 
         columns = list(result.keys())
-        rows = [list(row) for row in result.fetchall()]
+
+        rows = [
+            [make_json_safe(value) for value in row]
+            for row in result.fetchall()
+        ]
 
         print(f"Query returned {len(rows)} rows")
         print(rows)
@@ -64,7 +82,7 @@ def run_report_background(
 
             db.commit()
 
-        print(f"Report failed")
+        print("Report failed")
         print(f"Error: {e}")
 
     finally:
